@@ -25,6 +25,7 @@ make -<USE CLANG>
 ```
 
 Project was tested with following compilers:
+
 * GCC 4.9.1
 * clang 3.5
 
