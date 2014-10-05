@@ -1,0 +1,35 @@
+tiny_web_server
+=========
+
+A simple yet functional web-server for serving static content only. Server is based on epoll event distribution interface.
+
+Tech
+----
+
+* server uses epoll functionality to process I/O events
+* server decouples reception and processing of incoming requests by using an internal thread pool
+
+Installation
+--------------
+
+```sh
+hg clone https://bitbucket.org/dkhvorov/tiny_web_server
+cd tiny_web_server
+make
+```
+
+By default it compiles with GCC, however you can build it with clang by running that command:
+
+```sh
+make -<USE CLANG>
+```
+
+Project was tested with following compilers:
+* GCC 4.9.1
+* clang 3.5
+
+License
+----
+
+Beerware
+
