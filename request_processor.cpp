@@ -10,6 +10,8 @@
 #include "configuration.hpp"
 #include "request_processor.hpp"
 
+namespace
+{
 struct http_request
 {
 public:
@@ -112,6 +114,34 @@ const std::string & get_content_type(const std::string & file)
     return defaultContentType;
 }
 
+bool is_relative_path(const std::string & path)
+{
+    static std::regex rpath_regex("\\.\\.");
+
+    std::smatch request_match;
+
+    return std::regex_search(path, request_match, rpath_regex);
+}
+
+std::string generate_error_response(const std::string & reason, const std::string & text)
+{
+    std::stringstream ss;
+
+    ss << "HTTP/1.1 " << reason << "\r\n"
+       << "Connection: close\r\n"
+       << "Server: localhost\r\n"
+       << "Content-Type: text/html\r\n\r\n"
+       << "<html><head><title>" << reason << "</title>"
+       << "<style type=\"text/css\"><!--/*--><![CDATA[/*><!--*/body{color:#000;background-color:#FFF;font-family:sans-serif;}/*]]>*/--></style>"
+       << "</head><body><h1>" << reason << "</h1><p>"
+       << text
+       << "</p></body></html>";
+
+    return ss.str();
+}
+
+}
+
 void request_processor::operator()(ByteBufferPtr buffer, int fd)
 {
     if (!buffer)
@@ -127,67 +157,63 @@ void request_processor::operator()(ByteBufferPtr buffer, int fd)
 
     if (request.request == "GET")
     {
-        ss << configuration::instance().rootPath;
-
-        if (request.data.empty() || request.data == "/")
+        // checking for relative path in the request to deny access to top-level directories
+        if (!is_relative_path(request.data))
         {
-            ss << "/index.html";
+            ss << configuration::instance().rootPath;
+
+            if (request.data.empty() || request.data == "/")
+            {
+                ss << "/index.html";
+            }
+            else
+            {
+                ss << request.data;
+            }
+
+            std::string fullPath = ss.str();
+            std::cout << "trying to open a file " << fullPath << std::endl;
+
+            // search for the file
+            std::ifstream inFile(fullPath.c_str(), std::ios::in | std::ios::binary);
+
+            ss.str(std::string());
+
+            if (inFile.is_open())
+            {
+                // getting file size
+                inFile.seekg(0, std::ios::end);
+                auto fileSize = inFile.tellg();
+                inFile.seekg(0, std::ios::beg);
+
+                // read file
+                ss << "HTTP/" << request.version << " 200 OK\r\n"
+                   << "Connection: close\r\n"
+                   << "Server: localhost\r\n"
+                   << "Content-Length:" << fileSize << "\r\n"
+                   << "Content-Type: " << get_content_type(fullPath) << "\r\n\r\n"
+                   << inFile.rdbuf();
+                
+                closeConnection = true;
+            }
+            else
+            {
+                // 404 Not Found
+                std::stringstream message;
+                message << "The requested URL (" << request.data << ") was not found on this server.";
+                ss << generate_error_response("404 Not found", message.str());
+            }
         }
         else
         {
-            ss << request.data;
-        }
-
-        std::string fullPath = ss.str();
-        std::cout << "trying to open a file " << fullPath << std::endl;
-
-        // search for the file
-        std::ifstream inFile(fullPath.c_str(), std::ios::in | std::ios::binary);
-
-        ss.str(std::string());
-
-        if (inFile.is_open())
-        {
-            // getting file size
-            inFile.seekg(0, std::ios::end);
-            auto fileSize = inFile.tellg();
-            inFile.seekg(0, std::ios::beg);
-
-            // read file
-            ss << "HTTP/" << request.version << " 200 OK\r\n"
-               << "Connection: close\r\n"
-               << "Server: localhost\r\n"
-               << "Content-Length:" << fileSize << "\r\n"
-               << "Content-Type: " << get_content_type(fullPath) << "\r\n\r\n"
-               << inFile.rdbuf();
-            
-            closeConnection = true;
-        }
-        else
-        {
-            // 404 Not Found
-            ss << "HTTP/" << request.version << " 404 Not found\r\n"
-               << "Connection: close\r\n"
-               << "Server: localhost\r\n"
-               << "Content-Type: text/html\r\n\r\n"
-               << "<html><head><title>404 Not Found</title>"
-               << "<style type=\"text/css\"><!--/*--><![CDATA[/*><!--*/body{color:#000;background-color:#FFF;font-family:sans-serif;}/*]]>*/--></style>"
-               << "</head><body><h1>404 Not Found</h1><p>"
-               << "The requested URL (" << request.data << ") was not found on this server."
-               << "</p></body></html>";
+            std::stringstream message;
+            message << "Access to " << request.data << " is forbidden";
+            ss << generate_error_response("403 Forbidden", message.str());
         }
     }
     else
     {
-        ss << "HTTP/1.1 400 Bad Request\r\n"
-           << "Connection: close\r\n"
-           << "Server: localhost\r\n"
-           << "Content-Type: text/html\r\n\r\n"
-           << "<html><head><title>400 Bad Request</title>"
-           << "<style type=\"text/css\"><!--/*--><![CDATA[/*><!--*/body{color:#000;background-color:#FFF;font-family:sans-serif;}/*]]>*/--></style>"
-           << "</head><body><h1>400 Bad Request</h1><p>"
-           << "Request is not supported"
-           << "</p></body></html>";
+        ss << generate_error_response("400 Bad Request", "Request is not supported");
     }
 
     std::string output(ss.str());

@@ -89,7 +89,6 @@ int create_and_bind (char *port)
 void process_listening_socket(int sfd, int efd, epoll_event & event)
 {
     // We have a notification on the listening socket, which means one or more incoming connections.
-    // TODO: check event
     while (true)
     {
         struct sockaddr in_addr;
