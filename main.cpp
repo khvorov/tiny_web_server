@@ -1,6 +1,7 @@
 #include <vector>
 #include <fstream>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +42,27 @@ int make_socket_non_blocking (int sfd)
     return 0;
 }
 
+char * get_ip_str(const struct sockaddr *sa, char *s, size_t maxlen)
+{
+    switch(sa->sa_family)
+    {
+    case AF_INET:
+        inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr), s, maxlen);
+        break;
+
+    case AF_INET6:
+        inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
+                s, maxlen);
+        break;
+
+    default:
+        strncpy(s, "Unknown AF", maxlen);
+        return NULL;
+    }
+
+    return s;
+}
+
 int create_and_bind (char *port)
 {
     struct addrinfo hints;
@@ -69,6 +91,11 @@ int create_and_bind (char *port)
         if (s == 0)
         {
             // We managed to bind successfully!
+            char ip_str[INET6_ADDRSTRLEN];
+
+            get_ip_str(rp->ai_addr, ip_str, INET6_ADDRSTRLEN);
+
+            printf("binded to %s\n", ip_str);
             break;
         }
 
@@ -186,7 +213,7 @@ int main (int argc, char *argv[])
     std::vector<epoll_event> events(MAXEVENTS);
 
     // thread pool to process incoming requests
-    thread_pool<> pool(4);
+    thread_pool<> pool(8);
     request_processor processor;
 
     printf("starting event loop...\r\n");

@@ -150,12 +150,13 @@ void request_processor::operator()(ByteBufferPtr buffer, int fd)
         return;
     }
 
-    printf("got %lu bytes on descriptor %d\n", buffer->size(), fd);
-
     // parse header
     http_request request(*buffer);
     std::stringstream ss;
     bool closeConnection = true;
+
+    printf("got %lu bytes on descriptor %d, request = %s, data = %s\n",
+        buffer->size(), fd, request.request.c_str(), request.data.c_str());
 
     if (request.request == "GET")
     {
@@ -174,7 +175,6 @@ void request_processor::operator()(ByteBufferPtr buffer, int fd)
             }
 
             std::string fullPath = ss.str();
-            std::cout << "trying to open a file " << fullPath << std::endl;
 
             // search for the file
             std::ifstream inFile(fullPath.c_str(), std::ios::in | std::ios::binary);
