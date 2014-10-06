@@ -55,9 +55,13 @@ private:
             {
                 item();
             }
+            catch (std::exception & e)
+            {
+                fprintf(stderr, "caught an exception while executing on a thread pool\n%s\n", e.what());
+            }
             catch (...)
             {
-                // TODO: print err and ignore
+                fprintf(stderr, "caught an unknown exception while executing on a thread pool\n");
             }
         }
     }

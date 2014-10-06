@@ -150,6 +150,8 @@ void request_processor::operator()(ByteBufferPtr buffer, int fd)
         return;
     }
 
+    printf("got %lu bytes on descriptor %d\n", buffer->size(), fd);
+
     // parse header
     http_request request(*buffer);
     std::stringstream ss;

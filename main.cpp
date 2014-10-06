@@ -187,6 +187,7 @@ int main (int argc, char *argv[])
 
     // thread pool to process incoming requests
     thread_pool<> pool(4);
+    request_processor processor;
 
     printf("starting event loop...\r\n");
 
@@ -246,11 +247,7 @@ int main (int argc, char *argv[])
 
                 if (!buffer.empty())
                 {
-                    printf("got %lu bytes\n", buffer.size());
-
                     int fd = events[i].data.fd;
-
-                    request_processor processor;
                     pool.execute(std::bind(processor, std::make_shared<ByteBuffer>(std::move(buffer)), fd));
                 }
 

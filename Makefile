@@ -8,14 +8,14 @@ EXECUTABLE=tiny_web_server
 
 .PHONY: clean
 
-all: $(SOURCES) $(EXECUTABLE) depend 
+all: depend $(SOURCES) $(EXECUTABLE) 
 
 depend: .depend
 
 .depend: $(SOURCES)
 	$(CC) $(CFLAGS) -MM $^ > ./.depend;
 
-include .depend
+-include .depend
 
 $(EXECUTABLE): $(OBJECTS) 
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
@@ -24,4 +24,4 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	@rm -rf $(OBJECTS) $(EXECUTABLE) .depend
+	@rm -rf $(OBJECTS) $(EXECUTABLE) ./.depend
