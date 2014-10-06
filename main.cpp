@@ -276,6 +276,7 @@ int main (int argc, char *argv[])
                 {
                     int fd = events[i].data.fd;
                     pool.execute(std::bind(processor, std::make_shared<ByteBuffer>(std::move(buffer)), fd));
+                    done = 0;
                 }
 
                 if (done)
