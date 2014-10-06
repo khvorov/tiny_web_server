@@ -1,0 +1,6 @@
+# use glob syntax.
+syntax: glob
+
+*.o
+.depend
+tiny_web_server
